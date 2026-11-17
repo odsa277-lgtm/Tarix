@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>O'zbekiston tarixi — Test</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,Arial,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh;padding:14px}
+  .wrap{max-width:760px;margin:0 auto}
+  .card{background:#1e293b;border-radius:14px;padding:18px;margin-bottom:14px}
+  h1{font-size:24px;margin-bottom:8px}
+  p{line-height:1.5;color:#cbd5e1}
+  ul{margin:10px 0 16px 20px;color:#cbd5e1;line-height:1.7}
+  small{color:#94a3b8;display:block;margin:10px 0 16px;line-height:1.5}
+  button{font-family:inherit;cursor:pointer;border:none;border-radius:10px}
+  .big{padding:14px 26px;background:#22c55e;color:#fff;font-size:17px;font-weight:700}
+  .btn{padding:11px 18px;background:#475569;color:#fff;font-size:15px;font-weight:600}
+  .btn.red{background:#ef4444}.btn.blue{background:#2563eb}
+  .btn:disabled{opacity:.4;cursor:default}
+  .top{position:sticky;top:0;z-index:5;background:#0f172a;padding:8px 0;display:flex;align-items:center;gap:10px;justify-content:space-between}
+  #timer{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;color:#fbbf24}
+  #timer.low{color:#ef4444}
+  .qnum{font-size:13px;color:#94a3b8;margin-bottom:8px}
+  .qtext{font-size:20px;line-height:1.5;margin-bottom:16px}
+  .opt{display:flex;gap:12px;align-items:center;width:100%;text-align:left;padding:13px 14px;margin-bottom:10px;background:#0f172a;border:2px solid #334155;color:#e2e8f0;font-size:17px;border-radius:12px}
+  .opt:hover{border-color:#64748b}
+  .opt.sel{border-color:#3b82f6;background:#1e3a8a}
+  .opt.ok{border-color:#22c55e;background:#14532d}
+  .opt.bad{border-color:#ef4444;background:#7f1d1d}
+  .opt b{width:28px;height:28px;border-radius:50%;background:#334155;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+  .nav{display:flex;justify-content:space-between;gap:10px;margin-top:6px}
+  #grid{display:grid;grid-template-columns:repeat(10,1fr);gap:5px}
+  #grid button{aspect-ratio:1;background:#334155;color:#cbd5e1;font-size:12px;border-radius:6px}
+  #grid button.done{background:#2563eb;color:#fff}
+  #grid button.cur{outline:2px solid #fbbf24}
+  .score{font-size:56px;font-weight:800;color:#22c55e;text-align:center}
+  .center{text-align:center}
+  .sol{margin-top:8px;padding:10px;background:#0f172a;border-left:4px solid #fbbf24;border-radius:6px;font-size:15px;color:#cbd5e1}
+  .rev{border-top:1px solid #334155;padding-top:14px;margin-top:14px}
+  .tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:99px;margin-left:6px}
+  .tag.g{background:#14532d}.tag.r{background:#7f1d1d}.tag.n{background:#334155}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div id="start" class="card hidden">
+  <h1>🏛 O'zbekiston tarixi — Test</h1>
+  <p>500 000 000 ta variantli savollar bazasidan har safar tasodifiy savollar tushadi.</p>
+  <ul>
+    <li>100 ta savol</li>
+    <li>30 daqiqa vaqt</li>
+    <li>Har savolda 4 ta variant (A, B, C, D)</li>
+    <li>Qadimgi davrdan mustaqillikkacha: shaxslar, asarlar, sanalar, yodgorliklar, geografiya</li>
+    <li>Oxirida natija va to'g'ri javoblar ko'rsatiladi</li>
+    <li>Sahifani yangilasangiz ham test davom etadi</li>
+  </ul>
+  <small id="about"></small>
+  <div class="center"><button class="big" id="startBtn">Testni boshlash</button></div>
+</div>
+
+<div id="test" class="hidden">
+  <div class="top">
+    <div id="timer">30:00</div>
+    <div id="count" style="color:#94a3b8;font-size:14px"></div>
+    <button class="btn red" id="finishBtn">Yakunlash</button>
+  </div>
+  <div class="card">
+    <div class="qnum" id="qnum"></div>
+    <div class="qtext" id="qtext"></div>
+    <div id="opts"></div>
+    <div class="nav">
+      <button class="btn" id="prev">◀ Oldingi</button>
+      <button class="btn blue" id="next">Keyingi ▶</button>
+    </div>
+  </div>
+  <div class="card"><div id="grid"></div></div>
+</div>
+
+<div id="result" class="hidden">
+  <div class="card">
+    <h1 class="center">Natija</h1>
+    <div class="score" id="score"></div>
+    <p class="center" id="scoreInfo"></p>
+    <div class="center" style="margin-top:16px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+      <button class="btn" id="toggleWrong">Faqat xatolarni ko'rsatish</button>
+      <button class="big" id="againBtn">Yangi test</button>
+    </div>
+  </div>
+  <div class="card" id="review"></div>
+</div>
+
+</div>
+
+<script>
+// ================= Tasodifiy son generatori (id bo'yicha bir xil savol) =================
+function rng(seed){let a=seed>>>0;return()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function shuffle(a,r){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+const pickN=(a,n,r)=>shuffle(a,r).slice(0,n);
+const pick=(a,r)=>a[Math.floor(r()*a.length)];
+
+// ================= Tarixiy ma'lumotlar bazasi =================
+// ---- Voqea va yil (manfiy yil = miloddan avvalgi)
+const YEARS=[
+["Amir Temurning tug'ilishi",1336],
+["Amir Temurning Movarounnahr hukmdori bo'lishi (hokimiyat tepasiga kelishi)",1370],
+["Amir Temurning vafoti",1405],
+["Anqara jangi (Boyazid I asirga olingan jang)",1402],
+["Mirzo Ulug'bekning tug'ilishi",1394],
+["Mirzo Ulug'bekning o'ldirilishi",1449],
+["Buxoroda Ulug'bek madrasasining qurilishi",1417],
+["Alisher Navoiyning tug'ilishi",1441],
+["Alisher Navoiyning vafoti",1501],
+["Zahiriddin Muhammad Boburning tug'ilishi",1483],
+["Panipat jangi (Hindistonda Boburiylar saltanatiga asos solingan jang)",1526],
+["Zahiriddin Boburning vafoti",1530],
+["Chingizxon qo'shinlarining Xorazmga (Markaziy Osiyoga) yurishi boshlanishi",1219],
+["Jaloliddin Manguberdining vafoti",1231],
+["Somoniylar davlatining tugatilishi",999],
+["Ismoil Somoniyning hokimiyat tepasiga kelishi",892],
+["Talas jangi (arablar va Tan imperiyasi o'rtasida)",751],
+["Toshkentning Rossiya imperiyasi tomonidan bosib olinishi",1865],
+["Turkiston general-gubernatorligining tuzilishi",1867],
+["Buxoro amirligining Rossiyaga vassal (protektorat) bo'lib qolishi",1868],
+["Xiva xonligining Rossiya protektoratiga aylanishi",1873],
+["Qo'qon xonligining tugatilishi",1876],
+["Turkistondagi Jizzax qo'zg'oloni",1916],
+["Qo'qon (Turkiston) muxtoriyatining e'lon qilinishi",1917],
+["O'zbekiston Sovet Sotsialistik Respublikasining tuzilishi",1924],
+["Toshkentdagi kuchli zilzila",1966],
+["O'zbek tiliga davlat tili maqomi berilishi (Til to'g'risidagi qonun)",1989],
+["O'zbekiston Respublikasi mustaqilligining e'lon qilinishi",1991],
+["O'zbekiston Respublikasi Konstitutsiyasining qabul qilinishi",1992],
+["O'zbekistonning BMTga a'zo bo'lishi",1992],
+["Milliy valyuta — so'mning muomalaga kiritilishi",1994],
+["Islom Karimovning vafoti",2016],
+["Shavkat Mirziyoyevning Prezident etib saylanishi",2016],
+["Shayboniyxonning Samarqandni egallashi",1500],
+["Temuriylar davlatining barham topishi",1507],
+["Buxoro amirligining tugatilishi",1920],
+["Xiva xonligining tugatilishi",1920],
+["Xiva Ichan-Qal'asining YuNESKO Butunjahon merosi ro'yxatiga kiritilishi",1990],
+["Buxoro tarixiy markazining YuNESKO ro'yxatiga kiritilishi",1993],
+["Shahrisabz tarixiy markazining YuNESKO ro'yxatiga kiritilishi",2000],
+["Samarqand — madaniyatlar chorrahasining YuNESKO ro'yxatiga kiritilishi",2001],
+["Buxoro shahrining 2500 yilligi nishonlanishi",1997],
+["Toshkent shahrining 2200 yilligi nishonlanishi",2009],
+["Samarqand shahrining 2750 yilligi nishonlanishi",2007],
+["Termiz shahrining 2500 yilligi nishonlanishi",2001],
+["Shahrisabz shahrining 2700 yilligi nishonlanishi",2002],
+["Aleksandr Makedonskiyning Sug'diyonaga yurishi",-329],
+["Toshkentning O'zbekiston SSR poytaxtiga aylanishi",1930],
+["Davlat bayrog'ining qabul qilinishi",1991],
+["Davlat gerbining qabul qilinishi",1992],
+["Davlat madhiyasining qabul qilinishi",1992],
+["Qo'qon xonligining tashkil topishi",1709]
+];
+// ---- Muallif va asar
+const WORKS=[
+["Alisher Navoiy","Xamsa"],["Alisher Navoiy","Muhokamat ul-lug'atayn"],["Alisher Navoiy","Mezon ul-avzon"],
+["Alisher Navoiy","Xazoyin ul-maoniy"],["Alisher Navoiy","Mahbub ul-qulub"],["Alisher Navoiy","Nasoyim ul-muhabbat"],
+["Alisher Navoiy","Hayrat ul-abror"],["Alisher Navoiy","Farhod va Shirin"],["Alisher Navoiy","Layli va Majnun"],
+["Alisher Navoiy","Sab'ai sayyor"],["Alisher Navoiy","Saddi Iskandariy"],["Alisher Navoiy","Lison ut-tayr"],
+["Zahiriddin Muhammad Bobur","Boburnoma"],["Zahiriddin Muhammad Bobur","Aruz risolasi"],["Zahiriddin Muhammad Bobur","Mubayyin"],
+["Yusuf Xos Hojib","Qutadg'u bilig"],["Mahmud Qoshg'ariy","Devonu lug'otit turk"],["Ahmad Yassaviy","Devoni hikmat"],
+["Muhammad al-Xorazmiy","Al-jabr val-muqobala"],
+["Abu Rayhon Beruniy","Hindiston"],["Abu Rayhon Beruniy","Osor ul-boqiya"],["Abu Rayhon Beruniy","Qonuni Mas'udiy"],
+["Abu Ali ibn Sino","Tib qonuni"],["Abu Ali ibn Sino","Kitob ush-shifo"],["Abu Ali ibn Sino","Donishnoma"],
+["Mirzo Ulug'bek","Ziji jadidi Ko'ragoniy"],
+["Imom al-Buxoriy","Al-Jome' as-sahih"],["Imom at-Termiziy","Sunani Termiziy"],
+["Mahmud az-Zamaxshariy","Al-Kashshof"],["Mahmud az-Zamaxshariy","Asos ul-balog'a"],
+["Burhoniddin Marg'inoniy","Hidoya"],
+["Abdulla Qodiriy","O'tkan kunlar"],["Abdulla Qodiriy","Mehrobdan chayon"],["Abdulla Qodiriy","Obid ketmon"],
+["Cho'lpon","Kecha va kunduz"],["Oybek","Qutlug' qon"],["Oybek","Navoiy (roman)"],
+["G'afur G'ulom","Shum bola"],["Abdulla Qahhor","Sarob"],["Abdulla Qahhor","Sinchalak"],
+["Abdulla Avloniy","Turkiy guliston yohud axloq"],["Mahmudxo'ja Behbudiy","Padarkush"],
+["Hamza Hakimzoda Niyoziy","Boy ila xizmatchi"],["Hamza Hakimzoda Niyoziy","Maysaraning ishi"],
+["Erkin Vohidov","Ruhlar isyoni"],["Hamid Olimjon","Oygul bilan Baxtiyor"],
+["Maqsud Shayxzoda","Mirzo Ulug'bek (tragediya)"],["Pirimqul Qodirov","Yulduzli tunlar"]
+];
+// ---- Shaxs va ta'rif
+const ROLES=[
+["Amir Temur","Temuriylar davlati va sulolasining asoschisi"],
+["Mirzo Ulug'bek","Samarqand rasadxonasini qurdirgan Temuriy hukmdor va astronom"],
+["Alisher Navoiy","o'zbek mumtoz adabiyoti va adabiy tilining buyuk asoschisi"],
+["Zahiriddin Muhammad Bobur","Hindistonda Boburiylar saltanatining asoschisi"],
+["Muhammad al-Xorazmiy","algebra fanining asoschisi"],
+["Abu Rayhon Beruniy","Yerning radiusini hisoblagan buyuk qomusiy olim"],
+["Abu Ali ibn Sino","G'arbda Avitsenna nomi bilan mashhur tabobat allomasi"],
+["Imom al-Buxoriy","hadis ilmining buyuk allomasi"],
+["Bahouddin Naqshband","naqshbandiya tariqatining asoschisi"],
+["Jaloliddin Manguberdi","mo'g'ul bosqinchilariga qarshi kurashgan so'nggi Xorazmshoh"],
+["Spitamen","Aleksandr Makedonskiyga qarshi kurashgan sug'd sarkardasi"],
+["Muhammad Shayboniyxon","Shayboniylar davlatining asoschisi"],
+["Islom Karimov","O'zbekiston Respublikasining birinchi Prezidenti"],
+["Shavkat Mirziyoyev","O'zbekiston Respublikasining ikkinchi Prezidenti"],
+["Ismoil Somoniy","Buxoroni poytaxt qilib, Somoniylar davlatini mustahkamlagan hukmdor"],
+["Ali Qushchi","Ulug'bekning shogirdi va hamkori bo'lgan astronom"],
+["Abdulla Qodiriy","birinchi o'zbek romani muallifi"],
+["Mahmudxo'ja Behbudiy","birinchi o'zbek dramasi muallifi"],
+["Najmiddin Kubro","kubraviya tariqatining asoschisi"],
+["Ahmad Yassaviy","yassaviya tariqatining asoschisi"],
+["Mahmud Qoshg'ariy","turkiy tillarning birinchi yirik izohli lug'ati muallifi"],
+["Ahmad al-Farg'oniy","Alfraganus nomi bilan mashhur farg'onalik astronom"]
+];
+// ---- Yodgorlik va shahar
+const MONS=[
+["Registon ansambli","Samarqand"],["Gur-Amir maqbarasi","Samarqand"],["Shohi Zinda ansambli","Samarqand"],
+["Bibixonim masjidi","Samarqand"],["Ulug'bek rasadxonasi","Samarqand"],
+["Ismoil Somoniy maqbarasi","Buxoro"],["Kalon minorasi","Buxoro"],["Ark qal'asi","Buxoro"],
+["Chor Minor","Buxoro"],["Lab-i Hovuz majmuasi","Buxoro"],
+["Ichan-Qal'a","Xiva"],["Kalta Minor","Xiva"],["Tosh-Hovli saroyi","Xiva"],
+["Oqsaroy saroyi","Shahrisabz"],["Dorut Tilovat majmuasi","Shahrisabz"],
+["Ko'kaldosh madrasasi","Toshkent"],["Barakxon madrasasi","Toshkent"],["Hazrati Imom majmuasi","Toshkent"],["Chorsu bozori","Toshkent"],
+["Xudoyorxon o'rdasi","Qo'qon"],["Dahmai Shohon maqbaralari","Qo'qon"],
+["Hakim at-Termiziy maqbarasi","Termiz"]
+];
+// ---- Tug'ilgan joy (3-qiymat: ziddiyat guruhi)
+const BIRTH=[
+["Alisher Navoiy","Hirot"],["Zahiriddin Muhammad Bobur","Andijon"],["Amir Temur","Kesh (hozirgi Shahrisabz)"],
+["Abu Rayhon Beruniy","Kat (Xorazm)"],["Imom al-Buxoriy","Buxoro","bux"],
+["Abu Ali ibn Sino","Afshona qishlog'i (Buxoro yaqinida)","bux"],["Mirzo Ulug'bek","Sultoniya (hozirgi Eron hududi)"]
+];
+// ---- Bayramlar
+const HOLS=[
+["Mustaqillik kuni","1 sentyabr"],["Konstitutsiya kuni","8 dekabr"],["Navro'z bayrami","21 mart"],
+["Xotira va qadrlash kuni","9 may"],["Vatan himoyachilari kuni","14 yanvar"],
+["O'qituvchi va murabbiylar kuni","1 oktabr"],["Davlat bayrog'i kuni","18 noyabr"],["Davlat tili kuni","21 oktabr"]
+];
+// ---- Viloyat markazlari
+const CTRS=[
+["Andijon viloyati","Andijon"],["Buxoro viloyati","Buxoro"],["Farg'ona viloyati","Farg'ona"],["Jizzax viloyati","Jizzax"],
+["Xorazm viloyati","Urganch"],["Namangan viloyati","Namangan"],["Navoiy viloyati","Navoiy"],["Qashqadaryo viloyati","Qarshi"],
+["Samarqand viloyati","Samarqand"],["Sirdaryo viloyati","Guliston"],["Surxondaryo viloyati","Termiz"],
+["Toshkent viloyati","Nurafshon"],["Qoraqalpog'iston Respublikasi","Nukus"]
+];
+// ---- Davlat va poytaxt
+const DYNS=[
+["Somoniylar davlati","Buxoro"],["Buxoro amirligi","Buxoro"],["Amir Temur davlati","Samarqand"],
+["Xiva xonligi","Xiva"],["Qo'qon xonligi","Qo'qon"]
+];
+
+// ---- Alohida test savollari: [savol, to'g'ri(lar), noto'g'ri variantlar]
+const MCQ=[
+["O'zbekiston Respublikasining poytaxti qaysi shahar?","Toshkent",["Samarqand","Buxoro","Namangan","Andijon","Farg'ona","Nukus","Qarshi"]],
+["O'zbekiston bilan chegaradosh davlatni toping.",["Qozog'iston","Qirg'iziston","Tojikiston","Afg'oniston","Turkmaniston"],["Rossiya","Xitoy","Eron","Pokiston","Mo'g'uliston","Turkiya","Hindiston"]],
+["Quyidagi davlatlardan qaysi biri O'zbekiston bilan chegaradosh EMAS?",["Rossiya","Xitoy","Eron","Pokiston","Mo'g'uliston","Turkiya","Hindiston"],["Qozog'iston","Qirg'iziston","Tojikiston","Afg'oniston","Turkmaniston"]],
+["O'zbekiston nechta davlat bilan chegaradosh?","5 ta",["3 ta","4 ta","6 ta","7 ta","8 ta"]],
+["O'zbekiston Respublikasining davlat tili qaysi?","O'zbek tili",["Rus tili","Ingliz tili","Tojik tili","Qozoq tili","Turk tili","Fors tili"]],
+["O'zbekistonning milliy valyutasi nima deb ataladi?","So'm",["Tenge","Rubl","Somoniy","Manat","Lari","Dram","Grivna"]],
+["O'zbekiston davlat gerbida tasvirlangan qush qaysi?","Humo",["Burgut","Lochin","Qarg'a","Laylak","Oqqush","Bulbul"]],
+["O'zbekiston Respublikasi parlamenti qanday nomlanadi?","Oliy Majlis",["Davlat Dumasi","Jogorku Kenesh","Bundestag","Knesset","Kongress","Senat va Duma"]],
+["Orol dengiziga quyiladigan daryoni toping.",["Amudaryo","Sirdaryo"],["Volga","Nil","Dunay","Amazonka","Yenisey","Lena"]],
+["O'zbekistonning eng baland cho'qqisi qaysi?","Xazrati Sulton cho'qqisi",["Everest (Jomolungma)","Elbrus","Kilimanjaro","Monblan","Ararat","Akonkagua"]],
+["O'zbekiston nechta viloyatdan iborat (Qoraqalpog'iston Respublikasi va Toshkent shahridan tashqari)?","12 ta",["9 ta","10 ta","11 ta","13 ta","14 ta","15 ta"]],
+["Buyuk Ipak yo'lining ochilishida muhim rol o'ynagan Xitoy elchisi kim?","Chjan Szyan",["Marko Polo","Ibn Battuta","Vasko da Gama","Kolumb","Magellan","Chingizxon"]],
+["Qadimgi Sug'diyonaning markaziy shahri qaysi?","Marokanda (Samarqand)",["Baqtra","Nisa","Persepol","Ktesifon","Bobil"]],
+["Samarqandning qadimiy nomi qaysi?","Marokanda",["Baqtra","Nisa","Persepol","Ktesifon","Bobil"]],
+["Toshkentning qadimiy nomi qaysi?","Choch (Shosh)",["Marokanda","Baqtra","Nisa","Davan","Persepol"]],
+["Qadimda Farg'ona vodiysi qaysi nom bilan mashhur bo'lgan?","Davan",["Sug'diyona","Baqtriya","Parfiya","Marg'iyona","Elam"]],
+["Qadimgi Baqtriya davlatining poytaxti qaysi shahar edi?","Baqtra",["Marokanda","Nisa","Persepol","Ktesifon","Bobil"]],
+["Zardushtiylikning muqaddas kitobi qanday nomlanadi?","Avesto",["Qur'on","Injil","Tavrot","Rigveda","Tripitaka","Kojiki"]],
+["Kushon saltanatining eng mashhur podshosi kim?","Kanishka",["Aleksandr Makedonskiy","Doro III","Xerks","Ashoka","Kir II","Chingizxon"]],
+["Amir Temur qaysi shaharni o'z davlatining poytaxti qilgan?","Samarqand",["Buxoro","Toshkent","Hirot","Xiva","Qo'qon","Tabriz"]],
+["Amir Temurga nisbat beriladigan qonun-qoidalar to'plami qanday nomlanadi?","Temur tuzuklari",["Boburnoma","Qutadg'u bilig","Shohnoma","Xamsa","Devonu lug'otit turk","Avesto"]],
+["Samarqanddagi Registon maydoni nechta madrasadan iborat?","3 ta",["2 ta","4 ta","5 ta","6 ta","7 ta"]],
+["Registon ansamblidagi eng qadimgi madrasa qaysi?","Ulug'bek madrasasi",["Sherdor madrasasi","Tillakori madrasasi","Ko'kaldosh madrasasi","Barakxon madrasasi"]],
+["Alisher Navoiyning «Xamsa»si nechta dostondan iborat?","5 ta",["3 ta","4 ta","6 ta","7 ta","10 ta"]],
+["Mirzo Ulug'bekning «Ziji jadidi Ko'ragoniy» asarida nechta yulduzning o'rni aniqlangan?","1018 ta",["500 ta","700 ta","850 ta","1200 ta","1500 ta","2000 ta"]],
+["Ibn Sinoning «Tib qonuni» asari nechta kitobdan iborat?","5 ta",["3 ta","4 ta","7 ta","10 ta","12 ta"]],
+["«Algoritm» atamasi qaysi buyuk olim nomidan kelib chiqqan?","Muhammad al-Xorazmiy",["Abu Rayhon Beruniy","Abu Ali ibn Sino","Mirzo Ulug'bek","Abu Nasr Farobiy","Ahmad al-Farg'oniy"]],
+["Muhammad al-Xorazmiy qaysi fanning asoschisi hisoblanadi?","Algebra",["Kimyo","Biologiya","Geologiya","Tilshunoslik","Tarix"]],
+["O'zbekistonda birinchi bo'lib YuNESKO Butunjahon merosi ro'yxatiga kiritilgan obyekt qaysi?","Xivadagi Ichan-Qal'a",["Buxoro tarixiy markazi","Samarqand — madaniyatlar chorrahasi","Shahrisabz tarixiy markazi"]],
+["«Ichan-Qal'a» ichki shahri qaysi tarixiy shaharda joylashgan?","Xiva",["Buxoro","Samarqand","Termiz","Qo'qon","Shahrisabz"]],
+["«Boburnoma» qaysi tilda yozilgan?","Turkiy (chig'atoy) tilida",["Arab tilida","Yunon tilida","Lotin tilida","Rus tilida","Xitoy tilida"]],
+["O'zbekistonning birinchi Prezidenti kim?","Islom Karimov",["Shavkat Mirziyoyev","Sharof Rashidov","Nursulton Nazarboyev","Emomali Rahmon","Asqar Akayev","Saparmurod Niyozov"]],
+["O'zbekiston SSR Kommunistik partiyasi Markaziy Qo'mitasining 1959–1983-yillardagi birinchi kotibi kim edi?","Sharof Rashidov",["Nikita Xrushchyov","Leonid Brejnev","Yuriy Andropov","Mixail Gorbachev","Iosif Stalin"]],
+["O'zbekiston Respublikasi davlat madhiyasi matnining muallifi kim?","Abdulla Oripov",["Erkin Vohidov","Oybek","G'afur G'ulom","Hamid Olimjon","Abdulla Qahhor","Cho'lpon"]],
+["Navro'z bayrami qaysi astronomik voqea bilan bog'liq?","Bahorgi tengkunlik",["Yozgi quyosh turishi","Kuzgi tengkunlik","Qishki quyosh turishi","Oy tutilishi"]],
+["Navoiy fors tilidagi she'rlarida qaysi taxallusdan foydalangan?","Foniy",["Muqimiy","Furqat","Uvaysiy","Nodira","Mashrab","Lutfiy"]],
+["«Movarounnahr» so'zining ma'nosi nima?","Daryoning narigi tomoni",["Oltin vodiy","Tog' etagi","Qum dengizi","Muqaddas yer","Cho'l o'lkasi"]],
+["Movarounnahr qaysi daryolar oralig'ini anglatgan?","Amudaryo va Sirdaryo oralig'i",["Dajla va Furot oralig'i","Volga va Don oralig'i","Ganga va Jamna oralig'i","Nil va Kongo oralig'i","Dunay va Reyn oralig'i"]]
+];
+
+// ================= Savol shakllari =================
+const fy=y=>y>0?`${y}-yil`:`miloddan avvalgi ${-y}-yil`;
+const yrLoc=y=>y>0?`${y}-yilda`:`miloddan avvalgi ${-y}-yilda`;
+const toObj=a=>a.map(x=>({k:x[0],v:x[1],g:x[2]}));
+
+const CATS={
+ year:{pairs:toObj(YEARS),fv:fy,
+  s0:[k=>`${k} qaysi yilda sodir bo'lgan?`,k=>`Tarixiy voqea: «${k}». Bu voqea qaysi yilga to'g'ri keladi?`,k=>`«${k}» qaysi yilda yuz bergan?`],
+  s1:[y=>`${yrLoc(y)} qaysi voqea yuz bergan?`,y=>`Quyidagi voqealardan qaysi biri ${fy(y)}ga to'g'ri keladi?`,y=>`${fy(y)}: qaysi tarixiy voqea shu yili sodir bo'lgan?`]},
+ work:{pairs:toObj(WORKS),fv:x=>x,
+  s0:[a=>`${a} qalamiga mansub asarni toping.`,a=>`Quyidagi asarlardan qaysi biri ${a} tomonidan yozilgan?`,a=>`Qaysi asarning muallifi ${a}?`],
+  s1:[w=>`«${w}» asarining muallifi kim?`,w=>`«${w}» asarini kim yozgan?`,w=>`Quyidagi asar muallifini toping: «${w}».`]},
+ role:{pairs:toObj(ROLES),fv:x=>x,
+  s0:[p=>`${p} kim bo'lgan?`,p=>`${p} haqida qaysi ma'lumot to'g'ri?`,p=>`${p} tarixda nima bilan mashhur?`],
+  s1:[d=>`Quyidagi ta'rif kimga tegishli: «${d}»?`,d=>`«${d}» — bu kim?`,d=>`Qaysi tarixiy shaxs haqida shunday deyish mumkin: «${d}»?`]},
+ mon:{pairs:toObj(MONS),fv:x=>x,x0:["Farg'ona","Urganch","Termiz","Andijon","Namangan"],
+  s0:[m=>`«${m}» qaysi shaharda joylashgan?`,m=>`«${m}» tarixiy yodgorligini qaysi shaharda ko'rish mumkin?`,m=>`«${m}» qaysi shahar tarixiy obidasi hisoblanadi?`],
+  s1:[c=>`Quyidagi yodgorliklardan qaysi biri ushbu shaharda joylashgan: ${c}?`,c=>`${c} shahrida qaysi tarixiy yodgorlik bor?`]},
+ birth:{pairs:toObj(BIRTH),fv:x=>x,x0:["Samarqand","Toshkent","Marv","Qo'qon","Termiz","Balx"],
+  s0:[p=>`${p} qayerda tug'ilgan?`,p=>`${p}ning tug'ilgan joyi qayer?`,p=>`${p} qaysi hududda dunyoga kelgan?`],
+  s1:[c=>`Quyidagi shaxslardan qaysi biri ushbu joyda tug'ilgan: ${c}?`,c=>`${c} — qaysi allomaning tug'ilgan joyi?`]},
+ hol:{pairs:toObj(HOLS),fv:x=>x,
+  s0:[h=>`${h} qaysi sanada nishonlanadi?`,h=>`${h} qachon nishonlanadi?`,h=>`${h} — qaysi sana?`],
+  s1:[d=>`${d} sanasi qaysi bayram yoki xotira kuniga tegishli?`,d=>`Har yili ${d} kuni qaysi bayram nishonlanadi?`]},
+ ctr:{pairs:toObj(CTRS),fv:x=>x,
+  s0:[r=>`${r}ning ma'muriy markazi qaysi shahar?`,r=>`Qaysi shahar ${r}ning markazi hisoblanadi?`,r=>`${r} markazini toping.`],
+  s1:[c=>`${c} shahri qaysi hududning ma'muriy markazi?`,c=>`Quyidagi hududlardan qaysi birining markazi ${c} shahridir?`]},
+ dyn:{pairs:toObj(DYNS),fv:x=>x,x0:["Toshkent","Termiz","Andijon","Hirot"],x1:["Qoraxoniylar davlati","Xorazmshohlar davlati"],
+  s0:[s=>`${s}ning poytaxti qaysi shahar bo'lgan?`,s=>`Qaysi shahar ${s}ning poytaxti bo'lgan?`],
+  s1:[c=>`Quyidagi davlatlardan qaysi birining poytaxti ${c} bo'lgan?`,c=>`${c} qaysi davlatning poytaxti bo'lgan?`]}
+};
+
+// Barcha "asosiy mavzular" ro'yxati
+const ITEMS=[];
+Object.keys(CATS).forEach(c=>CATS[c].pairs.forEach((_,i)=>ITEMS.push({t:'p',c,i})));
+MCQ.forEach((_,i)=>ITEMS.push({t:'m',i}));
+
+function mkOpts(correct,wrongs,r){
+  const o=shuffle([correct,...wrongs],r);
+  return {o,c:o.indexOf(correct)};
+}
+
+function gen(id){
+  const r=rng(Math.imul(id^0x5bd1e995,0x9E3779B1)>>>0);
+  const it=ITEMS[Math.floor(r()*ITEMS.length)];
+  if(it.t==='m'){
+    const [q,a,w]=MCQ[it.i];
+    const correct=Array.isArray(a)?pick(a,r):a;
+    const wr=pickN(w.filter(x=>x!==correct),3,r);
+    const {o,c}=mkOpts(correct,wr,r);
+    return {id,key:'m:'+it.i,grp:'m:'+it.i,t:q,o,c,s:`To'g'ri javob: ${correct}.`};
+  }
+  const cat=CATS[it.c],p=cat.pairs[it.i];
+  const dir=r()<0.5?0:1;
+  let correct,wr,stem;
+  if(cat.fv===fy&&dir===0){
+    const cand=[];
+    for(let off=-40;off<=40;off++){
+      if(!off)continue;
+      const yy=p.v+off;
+      if(p.v>0?(yy>0&&yy<=2026):(yy<0)) cand.push(yy);
+    }
+    correct=fy(p.v);
+    wr=pickN(cand,3,r).map(fy);
+  } else {
+    const side=dir===0?(q=>cat.fv(q.v)):(q=>q.k);
+    let cand=cat.pairs.filter(q=>q.k!==p.k&&q.v!==p.v&&!(p.g&&q.g===p.g)).map(side);
+    cand=cand.concat((dir===0?cat.x0:cat.x1)||[]);
+    correct=dir===0?cat.fv(p.v):p.k;
+    cand=[...new Set(cand)].filter(x=>x!==correct);
+    wr=pickN(cand,3,r);
+  }
+  if(dir===0) stem=pick(cat.s0,r)(p.k);
+  else stem=pick(cat.s1,r)(cat.fv===fy?p.v:p.v);
+  const {o,c}=mkOpts(correct,wr,r);
+  return {id,key:it.c+':'+it.i,grp:it.c==='work'?'w:'+p.k:it.c+':'+it.i,t:stem,o,c,
+    s:`${p.k} — ${cat.fv(p.v)}.`};
+}
+
+// ================= Test holati =================
+const TOTAL=100, MINUTES=30, KEY='tarixTestState', SPACE=500000000;
+let S=null,Q=[],cur=0,tick=null,onlyWrong=false;
+const $=id=>document.getElementById(id);
+const save=()=>localStorage.setItem(KEY,JSON.stringify(S));
+const show=id=>['start','test','result'].forEach(x=>$(x).classList.toggle('hidden',x!==id));
+
+function newTest(){
+  const ids=[],keys=new Set(),grp={};
+  let guard=0;
+  while(ids.length<TOTAL&&guard++<50000){
+    const id=Math.floor(Math.random()*SPACE),q=gen(id);
+    if(keys.has(q.key))continue;
+    const g=q.grp,lim=g.startsWith('w:')?2:1;
+    if((grp[g]||0)>=lim)continue;
+    keys.add(q.key);grp[g]=(grp[g]||0)+1;ids.push(id);
+  }
+  S={ids,ans:{},end:Date.now()+MINUTES*60000,done:false};
+  save();openTest();
+}
+function openTest(){
+  Q=S.ids.map(gen);cur=0;show('test');draw();updateTimer();
+  clearInterval(tick);tick=setInterval(updateTimer,500);
+}
+function updateTimer(){
+  const left=Math.max(0,S.end-Date.now());
+  const m=Math.floor(left/60000),s=Math.floor(left/1000)%60;
+  $('timer').textContent=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  $('timer').classList.toggle('low',left<5*60000);
+  if(left<=0)finish();
+}
+function draw(){
+  const q=Q[cur];
+  $('qnum').textContent=`Savol ${cur+1} / ${TOTAL}`;
+  $('qtext').textContent=q.t;
+  $('opts').innerHTML='';
+  q.o.forEach((o,i)=>{
+    const b=document.createElement('button');
+    b.className='opt'+(S.ans[cur]===i?' sel':'');
+    const l=document.createElement('b');l.textContent='ABCD'[i];
+    const sp=document.createElement('span');sp.textContent=o;
+    b.append(l,sp);
+    b.onclick=()=>{S.ans[cur]=i;save();draw();};
+    $('opts').appendChild(b);
+  });
+  $('prev').disabled=cur===0;$('next').disabled=cur===TOTAL-1;
+  $('count').textContent=`Javob: ${Object.keys(S.ans).length}/${TOTAL}`;
+  $('grid').innerHTML='';
+  for(let i=0;i<TOTAL;i++){
+    const b=document.createElement('button');
+    b.textContent=i+1;
+    if(S.ans[i]!==undefined)b.classList.add('done');
+    if(i===cur)b.classList.add('cur');
+    b.onclick=()=>{cur=i;draw();};
+    $('grid').appendChild(b);
+  }
+}
+function finish(){
+  if(S.done)return;
+  S.done=true;S.finishedAt=Math.min(Date.now(),S.end);save();
+  clearInterval(tick);showResult();
+}
+function showResult(){
+  Q=S.ids.map(gen);show('result');
+  let ok=0;Q.forEach((q,i)=>{if(S.ans[i]===q.c)ok++;});
+  const answered=Object.keys(S.ans).length;
+  const used=Math.round((S.finishedAt-(S.end-MINUTES*60000))/1000);
+  $('score').textContent=`${ok} / ${TOTAL}`;
+  $('scoreInfo').textContent=`To'g'ri: ${ok} · Xato: ${answered-ok} · Javobsiz: ${TOTAL-answered} · ${Math.round(ok/TOTAL*100)}% · Vaqt: ${Math.floor(used/60)} daq ${used%60} s`;
+  renderReview();
+}
+function renderReview(){
+  const box=$('review');box.innerHTML='';
+  Q.forEach((q,i)=>{
+    const a=S.ans[i],good=a===q.c;
+    if(onlyWrong&&good)return;
+    const d=document.createElement('div');d.className='rev';
+    const tag=a===undefined?'<span class="tag n">javob yo\'q</span>':good?'<span class="tag g">to\'g\'ri</span>':'<span class="tag r">xato</span>';
+    const head=document.createElement('div');head.className='qnum';head.innerHTML=`Savol ${i+1} ${tag}`;
+    const qt=document.createElement('div');qt.className='qtext';qt.style.fontSize='18px';qt.textContent=q.t;
+    d.append(head,qt);
+    q.o.forEach((o,k)=>{
+      const op=document.createElement('div');
+      op.className='opt '+(k===q.c?'ok':(k===a?'bad':''));
+      op.style.cssText='cursor:default;font-size:16px';
+      const l=document.createElement('b');l.textContent='ABCD'[k];
+      const sp=document.createElement('span');sp.textContent=o;
+      op.append(l,sp);d.appendChild(op);
+    });
+    const sol=document.createElement('div');sol.className='sol';sol.textContent='💡 '+q.s;
+    d.appendChild(sol);box.appendChild(d);
+  });
+}
+
+$('startBtn').onclick=newTest;
+$('againBtn').onclick=()=>{localStorage.removeItem(KEY);onlyWrong=false;$('toggleWrong').textContent="Faqat xatolarni ko'rsatish";newTest();};
+$('prev').onclick=()=>{if(cur>0){cur--;draw();}};
+$('next').onclick=()=>{if(cur<TOTAL-1){cur++;draw();}};
+$('finishBtn').onclick=()=>{
+  const left=TOTAL-Object.keys(S.ans).length;
+  if(confirm(left?`${left} ta savolga javob bermadingiz. Baribir yakunlaysizmi?`:'Testni yakunlaysizmi?'))finish();
+};
+$('toggleWrong').onclick=()=>{
+  onlyWrong=!onlyWrong;
+  $('toggleWrong').textContent=onlyWrong?"Hammasini ko'rsatish":"Faqat xatolarni ko'rsatish";
+  renderReview();
+};
+document.addEventListener('keydown',e=>{
+  if($('test').classList.contains('hidden'))return;
+  const k=e.key.toLowerCase(),i='abcd'.indexOf(k)>=0?'abcd'.indexOf(k):'1234'.indexOf(k);
+  if(i>=0&&i<4){S.ans[cur]=i;save();draw();}
+  else if(e.key==='ArrowRight'&&cur<TOTAL-1){cur++;draw();}
+  else if(e.key==='ArrowLeft'&&cur>0){cur--;draw();}
+});
+
+// ================= Boshlanish =================
+$('about').textContent=`Eslatma: baza ${ITEMS.length} ta tarixiy mavzudan tuziladi. 500 000 000 ta variant — savol shakllari, noto'g'ri javoblar va ularning joylashuvi turlicha birikmalaridan hosil bo'ladi. Bitta testda mavzular takrorlanmaydi.`;
+try{S=JSON.parse(localStorage.getItem(KEY)||'null');}catch(e){S=null;}
+if(S&&!S.done){if(Date.now()>=S.end){S.done=true;S.finishedAt=S.end;save();showResult();}else openTest();}
+else if(S&&S.done)showResult();
+else show('start');
+</script>
+</body>
+</html>
